@@ -1,0 +1,318 @@
+-- QUESTION 1 What were the top 10 movies according to IMDB score?
+select title,imdb_score
+from titles
+where type = 'MOVIE' and imdb_score is not null
+order by imdb_score desc
+limit 10;
+
+--QUESTION 2 What were the top 10 shows according to IMDB score?
+select title, imdb_score
+from titles
+where type= 'SHOW' and imdb_score is not null
+order by imdb_score desc
+limit 10;
+
+--QUESTION 3 What were the bottom 10 movies according to IMDB score?
+select title,imdb_score
+from titles
+where type = 'MOVIE' and imdb_score is not null
+order by imdb_score asc
+limit 10;
+
+--QUESTION 4 What were the bottom 10 movies according to IMDB score?
+select title,imdb_score
+from titles
+where type = 'SHOW' and imdb_score is not null
+order by imdb_score asc
+limit 10;
+
+--QUESTION 5 What were the average IMDB and TMDB scores for shows and movies?
+select type, round(avg(cast(imdb_score as numeric)), 2) as avg_imdb_score, round(avg(cast(tmdb_score as numeric)), 2) as avg_tmdb_score
+from titles
+group by type;
+
+--QUESTION 6 Count of movies and shows in each decade  METHOD 1
+select
+    case
+        WHEN release_year BETWEEN 1900 AND 1909 THEN '1900s'
+        WHEN release_year BETWEEN 1910 AND 1919 THEN '1910s'
+        WHEN release_year BETWEEN 1920 AND 1929 THEN '1920s'
+        WHEN release_year BETWEEN 1930 AND 1939 THEN '1930s'
+        WHEN release_year BETWEEN 1940 AND 1949 THEN '1940s'
+        WHEN release_year BETWEEN 1950 AND 1959 THEN '1950s'
+        WHEN release_year BETWEEN 1960 AND 1969 THEN '1960s'
+        WHEN release_year BETWEEN 1970 AND 1979 THEN '1970s'
+        WHEN release_year BETWEEN 1980 AND 1989 THEN '1980s'
+        WHEN release_year BETWEEN 1990 AND 1999 THEN '1990s'
+        WHEN release_year BETWEEN 2000 AND 2009 THEN '2000s'
+        WHEN release_year BETWEEN 2010 AND 2019 THEN '2010s'
+        WHEN release_year BETWEEN 2020 AND 2029 THEN '2020s'
+        ELSE 'Other'
+    END AS decade,
+    SUM(CASE WHEN type = 'MOVIE' THEN 1 ELSE 0 END) AS movie_count,
+    SUM(CASE WHEN type = 'SHOW' THEN 1 ELSE 0 END) AS show_count,
+    COUNT(*) AS total_count
+FROM
+    titles
+GROUP BY
+    decade
+ORDER BY
+    decade;
+
+--METHOD 2
+SELECT CONCAT(FLOOR(release_year / 10) * 10, 's') AS decade,
+    SUM(CASE WHEN type = 'MOVIE' THEN 1 ELSE 0 END) AS movie_count,
+    SUM(CASE WHEN type = 'SHOW' THEN 1 ELSE 0 END) AS show_count,
+    COUNT(*) AS total_count
+FROM titles
+GROUP BY decade
+ORDER BY decade;
+
+--QUESTION 7 What were the average IMDB and TMDB scores for each production country?
+select production_countries, round(avg(cast(imdb_score as numeric)),2) as avg_imdb_score, round(avg(cast(tmdb_score as numeric)),2) as avg_tmdb_score
+from titles
+group by production_countries;
+
+--QUESTION 8 What were the average IMDB and TMDB scores for each age certification for shows and movies?
+select type, age_certification, round(avg(cast(imdb_score as numeric)),2) as avg_imdb_score, round(avg(cast(tmdb_score as numeric)),2) as avg_tmdb_score
+from titles
+where age_certification is not null
+group by type, age_certification;
+
+--QUESTION 9 What were the 5 most common age certifications for movies?
+select age_certification,count(*)
+from titles
+where type='MOVIE' and age_certification is not null
+group by age_certification
+order by count desc
+limit 5;
+
+--QUESTION 10 Who were the top 20 actors that appeared the most in movies/shows?
+select name, count(distinct titles.id) as appearance_count
+from credits 
+join titles on credits.id = titles.id
+where role = 'ACTOR'
+group by name
+order by appearance_count desc
+limit 20;
+
+--QUESTION 11 . Who were the top 20 directors that directed the most movies/shows?
+select name, count(distinct titles.id) as appearance_count
+from credits 
+join titles on credits.id = titles.id
+where role = 'DIRECTOR'
+group by name
+order by appearance_count desc
+limit 20;
+
+--QUESTION 12 Calculating the average runtime of movies and TV shows separately
+select type, round(avg(cast(runtime as numeric)), 2) as avg_runtime
+from titles
+group by type;
+
+--QUESTION 13 Finding the titles and directors of movies released on or after 2010
+select t.title, c.name as name_of_director
+from titles as t
+join credits as c on t.id = c.id
+where t.type='MOVIE'
+and t.release_year >= 2010
+and c.role = 'DIRECTOR';
+
+--QUESTION 14 Which shows on Netflix have the most seasons?
+select title, seasons
+from titles 
+where type='SHOW'
+order by seasons desc
+limit 10;
+
+--QUESTION 15 Which genres had the most movies?
+select trim(replace(replace(split_part(genres, ',', 1), '[', ''), ']', '')) AS genre, 
+count(*) as movie_count
+from titles
+where type = 'MOVIE'
+group by genre
+order by movie_count desc
+limit 10;
+
+--QUESTION 16 Which genres had the most shows?
+select trim(replace(replace(split_part(genres, ',', 1), '[', ''), ']', '')) AS genre, 
+count(*) as movie_count
+from titles
+where type = 'SHOW'
+group by genre
+order by movie_count desc
+limit 10;
+
+--QUESTION 17 Titles and Directors of movies with high IMDB scores (>7.5) and high TMDB popularityscores (>80)
+select t.title, c.name as director_name
+from titles as t
+join credits as c on t.id =c.id
+where t.type = 'MOVIE' and imdb_score > 7.5 and tmdb_popularity > 80 and c.role = 'DIRECTOR';
+
+--QUESTION 18 What were the total number of titles for each year?
+select release_year, count(*) as title_count
+from titles
+group by release_year
+order by release_year;
+
+--QUESTION 19 Actors who have starred in the most highly rated movies or shows
+select c.name, count(distinct t.id) as highly_rated_appearances
+from credits as c
+join titles as t on c.id = t.id
+where c.role = 'ACTOR'
+and t.imdb_score > 7.5
+group by c.name
+order by highly_rated_appearances
+limit 10;
+
+--QUESTION 20 Which actors/actresses played the same character in multiple movies or TV shows?
+select c.name as name_of_actor, c.character, count(distinct t.id) as appearance_count
+from credits as c
+join titles as t on c.id=t.id
+where c.character is not null
+group by c.name, c.character
+having count(distinct t.id) > 1
+order by appearance_count desc;
+
+--QUESTION 21 What were the top 3 most common genres?
+select trim(replace(replace(split_part(genres, ',', 1), '[', ''), ']', '')) as genre, 
+count(*) as genre_count
+from titles
+where type = 'SHOW'
+group by genre
+order by genre_count desc
+limit 3;
+	
+--QUESTION 22 Average IMDB score for leading actors/actresses in movies or shows
+select c.name as actor_name, round(avg(cast(t.imdb_score as numeric)), 2) as avg_imdb_score
+from credits as c
+join titles as t on c.id = t.id
+where c.role = 'ACTOR' 
+group by c.name
+having count(distinct t.id) >= 5  -- Filter for actors with at least 5 appearances
+order by avg_imdb_score desc
+limit 20;
+
+--QUESTION 23 Which movies or shows had the highest number of votes?
+select title, imdb_votes
+from titles as t
+where imdb_votes is not null and type = 'MOVIE'
+order by imdb_votes desc
+limit 10;
+
+--QUESTION 24 Which movies or shows had the longest runtime?
+select title, runtime as longest_runtime
+from titles
+where runtime is not null and type= 'MOVIE'
+order by longest_runtime desc
+limit 10;
+
+--QUESTION 25 What were the top 5 most popular genres for movies?
+select trim(replace(replace(split_part(genres, ',', 1), '[', ''), ']', '')) as genre, 
+count(*) as movie_count
+from titles
+where type = 'MOVIE'
+group by genre
+order by movie_count desc
+limit 5;
+
+--QUESTION 26 How many movies or shows were released each year?
+select release_year, count(*) as movie_released
+from titles
+where type= 'MOVIE'
+group by release_year
+order by release_year;
+
+--QUESTION 27 Which actors appeared in the most genres?
+select name as actor_name, count(distinct genre) as genre_count
+from credits 
+join titles on credits.id = titles.id
+join lateral (select trim(replace(replace(split_part(genres, ',', 1), '[', ''), ']', '')) as genre) as g on true
+where role = 'ACTOR'
+group by name
+order by genre_count desc
+limit 10;
+
+--QUESTION 28 Which production countries have the highest number of movies or shows?
+select production_countries, count(*) total_movies
+from titles
+where type = 'MOVIE'
+group by production_countries
+order by total_movies desc
+limit 10;
+
+--QUESTION 29 Which actors have the highest average rating across all their movies/shows?
+select c.name as actor_name, round(avg(cast(imdb_score as numeric)), 2) as avg_imdb_score
+from credits as c
+join titles as t on c.id = t.id
+where c.role = 'ACTOR'
+group by c.name
+having count(distinct t.id) >= 5
+order by avg_imdb_score desc
+limit 10;
+
+--QUESTION 30 Which shows had the most seasons?
+select title, seasons
+from titles
+where type = 'SHOW'
+order by seasons desc
+limit 10;
+
+--QUESTION 31 Which movies had the highest box office revenue?
+select title, revenue as total_revenue
+from titles
+where type = 'MOVIE'
+and revenue is not null
+order by total_revenue desc
+limit 10;
+
+--QUESTION 32 Which directors have worked on the most movies or shows?
+select c.name as director_name, count(distinct t.id) as movie_show_count
+from credits as c
+join titles as t on c.id = t.id
+where c.role = 'DIRECTOR'
+group by c.name
+order by movie_show_count desc
+limit 10;
+
+--QUESTION 33 What are the most common keywords or phrases in movie titles?
+select trim(replace(replace(word, '.', ''), ',', '')) as word, count(*) as word_count
+from titles as t, lateral regexp_split_to_table(t.title, E'\\s+') as word
+where t.type = 'MOVIE'
+group by word
+order by word_count desc
+limit 10;
+
+--QUESTION 34  Which actors or actresses have the most frequent collaborations with the same director?
+select c1.name as actor_name, c2.name as director_name, count(*) as collaboration_count
+from credits as c1
+join credits as c2 on c1.id = c2.id
+where c1.role = 'ACTOR' and c2.role = 'DIRECTOR'
+group by c1.name, c2.name 
+order by collaboration_count desc
+limit 10;
+
+--QUESTION 35 What were the most common movie ratings (IMDB scores) for movies released in a particular decade?
+select CONCAT(floor(release_year / 10) * 10, 's') as decade, round(avg(cast(imdb_score as numeric)), 2) as avg_imdb_score
+from titles
+where type = 'MOVIE'
+group by decade
+order by decade;
+
+--QUESTION 36 Which movies or shows had the highest popularity score on TMDB?
+select title, tmdb_popularity as popular_movie
+from titles
+where tmdb_popularity is not null
+order by popular_movie desc
+limit 10;
+
+--QUESTION 37 How many actors or actresses have starred in both movies and TV shows?
+select count(distinct c.name) as actor_count
+from credits as c
+join titles as t1 on c.id = t1.id
+where c.role = 'ACTOR' and exists(
+	                       select 1
+	                       from titles as t2
+	                        where t2.id = t1.id and t2.type = 'MOVIE'
+)
+and t1.type = 'SHOW';
